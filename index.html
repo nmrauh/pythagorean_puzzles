@@ -1,0 +1,1517 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pythagorean Dissection Puzzles</title>
+<meta name="description" content="Drag, turn and flip the pieces of two small squares to fill the square on the hypotenuse: ten dissection proofs of the Pythagorean theorem.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #E9EEF2;
+    --grid: #D6DEE6;
+    --grid-major: #C2CEDA;
+    --ink: #22314F;
+    --ink-soft: #5A6886;
+    --target-fill: rgba(34, 49, 79, 0.06);
+    --piece-stroke: #22314F;
+    --accent: #E4572E;
+    --surface: #F7F9FB;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #18202C;
+      --grid: #212B39;
+      --grid-major: #2B384A;
+      --ink: #DCE4EF;
+      --ink-soft: #93A1B8;
+      --target-fill: rgba(220, 228, 239, 0.05);
+      --piece-stroke: #0E141C;
+      --accent: #FF7A52;
+      --surface: #1F2834;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #18202C;
+    --grid: #212B39;
+    --grid-major: #2B384A;
+    --ink: #DCE4EF;
+    --ink-soft: #93A1B8;
+    --target-fill: rgba(220, 228, 239, 0.05);
+    --piece-stroke: #0E141C;
+    --accent: #FF7A52;
+    --surface: #1F2834;
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  html { height: 100%; scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    margin: 0;
+    height: 100%;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  /* Everything lives in one square, sized to the window (or the iframe it's embedded in).
+     The controls sit in the three corners the figure never uses. */
+  #stage {
+    position: relative;
+    width: min(100vw, 100vh);
+    height: min(100vw, 100vh);
+    container-type: size;
+    font-size: clamp(10px, 3.2cqmin, 16px);
+  }
+  #stage { display: flex; }
+  #strip {
+    flex: none;
+    width: 15%;
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    background: var(--surface);
+    border-right: 1.5px solid var(--grid-major);
+  }
+  #puzzleList { list-style: none; margin: 0; padding: 0.35em; display: flex; flex-direction: column; gap: 0.3em; }
+  .puzzle-btn {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.25em;
+    padding: 0.25em 0.3em;
+    font-size: 0.75em;
+    text-align: left;
+    background: var(--paper);
+    border: 1.5px solid transparent;
+    border-radius: 6px;
+  }
+  .puzzle-btn:hover { background: var(--paper); border-color: var(--grid-major); }
+  .puzzle-btn[aria-current="true"] { border-color: var(--ink); }
+  .puzzle-btn svg { flex: none; width: 52%; height: auto; aspect-ratio: 1.15; display: block; }
+  .puzzle-btn .thumb-piece { stroke: var(--piece-stroke); stroke-width: 1; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+  .puzzle-btn .thumb-target { fill: var(--target-fill); stroke: var(--ink-soft); stroke-width: 1; stroke-dasharray: 3 2; vector-effect: non-scaling-stroke; }
+  .puzzle-meta { flex: 1; display: flex; flex-direction: column; align-items: center; line-height: 1; }
+  .puzzle-name { font-size: 1.9em; font-weight: 800; }
+  .puzzle-solved { color: var(--accent); font-size: 1.6em; font-weight: 800; min-height: 1em; }
+  #boardWrap { position: relative; flex: 1; min-width: 0; height: 100%; }
+  #board { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .zone { position: absolute; display: flex; flex-direction: column; gap: 0.45em; pointer-events: none; }
+  .zone button, .zone select, .zone input { pointer-events: auto; }
+  #zoneTL { justify-content: flex-start; }
+  h1 {
+    margin: 0;
+    font-size: 1.75em;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    white-space: nowrap;
+    font-variant-numeric: lining-nums;
+    transition: color 0.4s ease;
+  }
+  h1.solved { color: var(--accent); }
+  button, select {
+    font: inherit;
+    font-size: 0.9em;
+    font-weight: 600;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1.5px solid var(--ink);
+    border-radius: 6px;
+    padding: 0.3em 0.6em;
+    cursor: pointer;
+    max-width: 100%;
+  }
+  button:hover, select:hover { background: var(--paper); }
+  button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .ratio { display: flex; flex-direction: column; gap: 0.2em; font-weight: 600; font-size: 0.9em; }
+  .ratio-row { display: flex; justify-content: space-between; gap: 0.5em; }
+  .ratio output { font-variant-numeric: tabular-nums; }
+  .ratio input { width: 100%; margin: 0; accent-color: var(--accent); cursor: pointer; }
+  .ratio input:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
+  .buttons { display: flex; gap: 0.4em; flex-wrap: wrap; }
+  .hint { margin: 0; font-size: 0.78em; color: var(--ink-soft); line-height: 1.3; }
+
+  /* board drawing */
+  .grid line { stroke: var(--grid); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .grid line.major { stroke: var(--grid-major); }
+  .tri { fill: var(--target-fill); stroke: var(--ink-soft); stroke-width: 1.25; vector-effect: non-scaling-stroke; }
+  .home { fill: none; stroke: var(--ink-soft); stroke-width: 1.25; stroke-dasharray: 5 4; vector-effect: non-scaling-stroke; }
+  .target { fill: var(--target-fill); stroke: var(--ink); stroke-width: 2; vector-effect: non-scaling-stroke; transition: fill 0.4s ease, stroke 0.4s ease; }
+  .target.solved { stroke: var(--accent); }
+  .sq-label { fill: var(--ink-soft); opacity: 0.45; font-weight: 800; font-family: inherit; pointer-events: none; }
+  .piece {
+    stroke: var(--piece-stroke);
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+    cursor: grab;
+    fill-opacity: 1;
+  }
+  .piece:focus { outline: none; }
+  .piece:focus-visible { stroke: var(--accent); stroke-width: 3; }
+  .piece.dragging { cursor: grabbing; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.25)); }
+  .painted .piece { filter: url(#paint); stroke-opacity: 0.55; }
+  .painted .piece.dragging { filter: url(#paint) drop-shadow(0 4px 6px rgba(0,0,0,0.25)); }
+  .ghost {
+    fill-opacity: 0.3;
+    stroke-width: 1.5;
+    stroke-dasharray: 4 3;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  .ghosts.show .ghost { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .ghost { transition: none !important; } }
+  .snap-line { stroke: var(--accent); stroke-width: 3; stroke-linecap: round; vector-effect: non-scaling-stroke; pointer-events: none; }
+  .snap-ring { fill: none; stroke: var(--accent); stroke-width: 2; vector-effect: non-scaling-stroke; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <nav id="strip" aria-label="Puzzles"><ul id="puzzleList"></ul></nav>
+  <div id="boardWrap">
+  <svg id="board" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMin meet" role="application" aria-label="Puzzle board"></svg>
+  <div class="zone" id="zoneTL">
+    <h1 id="eq">a² + b² = c²</h1>
+    <p class="hint" id="hint">Drag pieces into the big square. Right-drag to turn. Shift + right-click to flip.</p>
+    <label class="ratio" for="ratio">
+      <span class="ratio-row"><span>a : b</span><output id="ratioOut" for="ratio"></output></span>
+      <input type="range" id="ratio" step="0.001" list="triples">
+    </label>
+    <datalist id="triples"></datalist>
+    <div class="buttons">
+      <button id="reset" type="button">Reset</button>
+    </div>
+  </div>
+  </div>
+</div>
+
+<script>
+/* ------------------------------------------------------------------
+   PUZZLE DATA
+   Coordinates are in ordinary math orientation (y points up), exactly
+   as you'd enter them in Desmos. Each piece is a list of [x, y] vertices.
+   Pieces start where they're listed, so list them inside the two small
+   squares. squares.c is the target the pieces must fill.
+------------------------------------------------------------------- */
+// The shared figure every puzzle is built on. It mirrors the "Triangle and
+// Squares" folder in Desmos: the hypotenuse is scaled to length 1, square a
+// sits below the triangle, square b to its left, square c on the hypotenuse.
+function figure(a, b) {
+  const c = Math.hypot(a, b), a0 = a / c, b0 = b / c;
+  const p0 = [0, 0], p1 = [a0, 0], p2 = [0, b0];
+  const r0 = [0, -a0], r1 = [a0, -a0];
+  const s0 = [-b0, 0], s2 = [-b0, b0];
+  const t1 = [a0 + b0, 0 + a0], t2 = [b0, b0 + a0];
+  return {
+    a, b, c, a0, b0, p0, p1, p2, r0, r1, s0, s2, t1, t2,
+    triangle: [p0, p1, p2],
+    squares: {
+      a: [p1, p0, r0, r1],
+      b: [p0, p2, s2, s0],
+      c: [p2, p1, t1, t2]
+    }
+  };
+}
+
+// Each puzzle names itself, gives the a : b range its cut is valid for
+// (a : b = r : 1), and lists its pieces in terms of the figure's values.
+const PUZZLES = [
+  {
+    id: "dissection-1",
+    name: "Dissection 1",
+    // needs a ≤ b: past that, u₁ and u₄ leave square b
+    min: 0.15, max: 1, start: 0.75,
+    pieces({ a0, b0, p0, p1, p2, r0, r1, s0, s2 }) {
+      const h = [-b0 / 2, b0 / 2];
+      const u1 = add(h, [-b0 / 2, -a0 / 2]);
+      const u2 = add(h, [-a0 / 2, b0 / 2]);
+      const u3 = add(h, [b0 / 2, a0 / 2]);
+      const u4 = add(h, [a0 / 2, -b0 / 2]);
+      return [
+        [u1, s0, u4, h],
+        [u4, p0, u3, h],
+        [u3, p2, u2, h],
+        [u2, s2, u1, h],
+        [p0, p1, r1, r0]
+      ];
+    }
+  },
+  {
+    id: "dissection-2",
+    name: "Dissection 2",
+    min: 0.15, max: 1, start: 0.75,     // this cut needs a ≤ b
+    pieces({ a, b, c, a0, b0, p0, p1, p2, r0, r1, s0, s2 }) {
+      const d0 = b0 * b / c;
+      const u0 = [s2[0], s2[1] - a0];
+      const u1 = [p2[0] - a0, p2[1]];
+      const u2 = [-d0 * a / c, d0 * b / c];
+      return [
+        [u2, u1, p2],
+        [u2, p0, p2],
+        [u2, p0, s0, u0],
+        [u2, u0, s2, u1],
+        [p0, p1, r1, r0]
+      ];
+    }
+  },
+  {
+    id: "dissection-3",
+    name: "Dissection 3",
+    // needs a < b: at a = b, d₁ = 0 and the corner triangle shrinks to nothing
+    min: 0.15, max: 1, start: 0.75,
+    // pieces that vanish near 1 : 1 come back here (found from a solved square)
+    spawn: { 1: { from: 0, at: [1, 2], turn: -Math.PI } },
+    pieces({ a, b, a0, b0, p0, p1, p2, r0, r1, s0, s2 }) {
+      const d1 = Math.abs(b0 - a0);
+      const d2 = a / b * d1;
+      const u0 = [-d1, 0];
+      const u1 = [0, d2];
+      const e0 = a / b * a0;
+      const v0 = [0, -e0];
+      return [
+        [s0, s2, u0],
+        [p0, u0, u1],
+        [u1, p2, s2, u0],
+        [v0, p0, p1],
+        [v0, r0, r1, p1]
+      ];
+    }
+  },
+  {
+    id: "dissection-4",
+    name: "Dissection 4",
+    // From the Pythagorean tiling with a grid of big squares laid over it,
+    // anchored at the centre of square a. Square a gets a pinwheel cut through
+    // its centre; square b loses four corner triangles, each cut parallel to a
+    // side of the big square at depth δ = a₀(b₀ − a₀)/2. At 1 : 1 those corners
+    // vanish, so the slider stops at 0.9.
+    min: 0.15, max: 1, start: 0.75,
+    // pieces that vanish near 1 : 1 come back here (found from a solved square)
+    spawn: { 4: { from: 3, at: [0, 2] }, 6: { from: 2, at: [0, 2] }, 7: { from: 0, at: [0, 1] }, 8: { from: 1, at: [0, 2] } },
+    pieces({ a0, b0, p0, p1, p2, r0, r1, s0, s2 }) {
+      const k = a0 * a0 / (2 * b0);
+      const C = [a0 / 2, -a0 / 2];                 // centre of square a
+      const L = [0, -a0 / 2 - k], R = [a0, -a0 / 2 + k];
+      const T = [a0 / 2 - k, 0], B = [a0 / 2 + k, -a0];
+      const dl = a0 * (b0 - a0) / 2;
+      const x = dl / a0, y = dl / b0;              // how far each corner cut runs along the two sides
+      const q0 = [-x, 0], q1 = [-b0 + y, 0], q2 = [-b0, x], q3 = [-b0, b0 - y];
+      const q4 = [-b0 + x, b0], q5 = [-y, b0], q6 = [0, b0 - x], q7 = [0, y];
+      return [
+        [p0, T, C, L],
+        [T, p1, R, C],
+        [R, r1, B, C],
+        [B, r0, L, C],
+        [q7, p0, q0],
+        [q0, q1, q2, q3, q4, q5, q6, q7],
+        [q5, p2, q6],
+        [q1, s0, q2],
+        [q3, s2, q4]
+      ];
+    }
+  },
+  {
+    id: "dissection-5",
+    name: "Dissection 5",
+    min: 0.15, max: 1, start: 0.75,
+    pieces({ a, b, a0, b0, p0, p1, p2, r0, r1, s0, s2 }) {
+      const b1 = b / (a + b) * b0;
+      const b2 = b / (a + b) * a0;
+      const u0 = sub(p0, [b1, 0]);
+      const u1 = add(s0, [0, b1]);
+      const u2 = add(s2, [b1, 0]);
+      const u3 = sub(p2, [0, b1]);
+      const v0 = add(p0, [b2, 0]);
+      const v1 = sub(p1, [0, b2]);
+      const v2 = sub(r1, [b2, 0]);
+      const v3 = add(r0, [0, b2]);
+      return [
+        [p2, u2, u3],
+        [s2, u2, u1],
+        [s0, u0, u1],
+        [p0, u0, u3],
+        [u0, u1, u2, u3],
+        [r0, v2, v3],
+        [r1, v2, v1],
+        [p1, v0, v1],
+        [p0, v0, v3],
+        [v0, v1, v2, v3]
+      ];
+    }
+  },
+  {
+    id: "dissection-6",
+    name: "Dissection 6",
+    min: 0.15, max: 1, start: 0.75,
+    pieces({ a, b, c, a0, b0, p0, p1, p2, r0, r1, s0, s2 }) {
+      const d = a0 * b / (a + b + c);      // the triangle's inradius, at this scale
+      const u0 = [0, d];
+      const u1 = [-b0 + d, 0];
+      const u2 = [-b0, b0 - d];
+      const u3 = [-d, b0];
+      const u4 = [-b0 / 2, b0 / 2];
+      const v0 = [d, 0];
+      const v1 = [a0, -d];
+      const v2 = [a0 - d, -a0];
+      const v3 = [0, -a0 + d];
+      return [
+        [p1, v1, v0],
+        [r1, v1, v2],
+        [r0, v3, v2],
+        [p0, v3, v0],
+        [v0, v1, v2, v3],
+        // each corner triangle of square b stays joined to the triangle at u₄
+        // that shares its long side, so square b is four pieces around u₄
+        [p2, u3, u4, u0],
+        [p0, u1, u4, u0],
+        [s0, u1, u4, u2],
+        [s2, u2, u4, u3]
+      ];
+    }
+  },
+  {
+    id: "dissection-7",
+    name: "Dissection 7",
+    min: 0.15, max: 1, start: 0.75,
+    pieces({ a, b, a0, b0, p0, p1, p2, r0, r1, s0, s2 }) {
+      const d0 = a0 * b0 / (a0 + b0);
+      const u0 = add(s0, [d0, d0]);
+      const u1 = sub(p2, [d0, d0]);
+      const d1 = a / b * d0;
+      const v0 = add(r0, [d1, d1]);
+      const v1 = sub(p1, [d1, d1]);
+      return [
+        [p2, u0, s2],
+        [p2, p0, u1],
+        [s0, p0, u1],
+        [s0, u0, s2],
+        [p0, v0, p1],
+        [r1, p1, v1],
+        [r1, r0, v1],
+        [p0, r0, v0]
+      ];
+    }
+  },
+  {
+    id: "dissection-8",
+    name: "Dissection 8",
+    // needs a < b: two pieces shrink to nothing at 1 : 1, so the slider stops at 0.9
+    min: 0.15, max: 1, start: 0.75,
+    // pieces that vanish near 1 : 1 come back here (found from a solved square)
+    spawn: { 2: { from: 0, at: [0, 1] }, 3: { from: 0, at: [0, 0], turn: -Math.PI }, 4: { from: 1, at: [0, 0] } },
+    pieces({ a, b, a0, b0, p0, p1, p2, r0, r1, s0, s2 }) {
+      const d0 = b0 - a0;
+      const d1 = a / b * a0;
+      const u0 = [-b0, d0];
+      const u1 = [0, d0];
+      const u2 = [-a0, 0];
+      const u3 = [-a0, d0];
+      const u4 = [-d1, 0];
+      const v0 = [0, -d1];
+      return [
+        [u0, s2, p2],
+        [u0, u1, p2],
+        [s0, u0, u3, u2],
+        [u3, u2, u4],
+        [u3, u4, p0, u1],
+        [v0, p0, p1],
+        [v0, r0, r1, p1]
+      ];
+    }
+  },
+  {
+    id: "dissection-9",
+    name: "Dissection 9",
+    // Square a is cut into rows by lines parallel to the big square's side,
+    // spaced a₀² apart (line k meets the right side at height −(k−1)·a₀·a/b).
+    // Each time b/a passes a whole number, one more line crosses square a and
+    // adds a row: 7 pieces from 1 : 2 up, 8 from 1 : 3, 9 from 1 : 4.
+    // Near 1 : 1 the last row shrinks to nothing, so the slider stops at 0.9.
+    min: 0.15, max: 1, start: 0.75,
+    breaks: [1 / 6, 1 / 5, 1 / 4, 1 / 3, 1 / 2],
+    // A new row starts with no area at corner r₁. When it appears it is turned
+    // like the row before it, with its corner on that row's last corner, which
+    // is where it belongs in a solved square (or at home, if that row is home).
+    spawn: { 6: { from: 3, at: [0, 0] }, 7: { from: 6, at: [2, 4] }, 8: { from: 7, at: [2, 4] }, 9: { from: 8, at: [2, 4] }, 10: { from: 9, at: [2, 4] }, 11: { from: 10, at: [2, 4] } },
+    pieces({ a, b, c, a0, b0, p0, p1, p2, r0, r1, s0, s2 }) {
+      const u0 = sub(s2, [0, a0]);
+      const d0 = b0 * b / c;
+      const u1 = [-d0 * a / c, d0 * b / c];
+      const v0 = [0, -a / b * a0];
+      const v1 = [(a / c) * (a / c) * a0, -(b / c) * (a / c) * a0];
+      const m = b / a, ROWS = 7;
+      const crosses = k => k < m + 1;                        // does line k cross square a?
+      const onLeft = k => k <= m;                            // ...entering on the left side (else the bottom)?
+      const R = k => [a0, -(k - 1) * a0 / m];                // where line k meets the right side
+      const L = k => onLeft(k) ? [0, -k * a0 / m] : [a0 * (k - m), -a0];
+      // Row j lies between lines j and j + 1. Every row is listed as five
+      // corners (some repeated) so the lists stay the same as rows appear.
+      const rows = [];
+      for (let j = 1; j <= ROWS; j++) {
+        if (!crosses(j)) { rows.push([r1, r1, r1, r1, r1]); continue; }   // no area yet
+        const next = crosses(j + 1);
+        const Rn = next ? R(j + 1) : r1, Ln = next ? L(j + 1) : r1;
+        const X = onLeft(j) ? (next && onLeft(j + 1) ? Ln : r0) : L(j);
+        rows.push([L(j), R(j), Rn, Ln, X]);
+      }
+      // (with ratios from 1 : 2 up, rows 1 and 2 are your v₀ p₁ v₂ v₃ r₀ and v₂ v₃ r₁)
+      return [
+        [u0, s2, p2],
+        [u1, p0, p2],
+        [u1, u0, s0, p0],
+        [p0, p1, v1],
+        [p0, v0, v1],
+        ...rows
+      ];
+    }
+  },
+  {
+    id: "dissection-10",
+    name: "Dissection 10",
+    // needs a < b: the small square (u₂, u₁, u₀, s₀) has side b₀ − a₀,
+    // which vanishes at 1 : 1, so the slider stops at 0.9
+    min: 0.15, max: 1, start: 0.75,
+    // pieces that vanish near 1 : 1 come back here (found from a solved square)
+    spawn: { 2: { from: 0, at: [0, 0], turn: Math.PI / 2 }, 3: { from: 1, at: [2, 2], turn: -Math.PI / 2 }, 4: { from: 0, at: [3, 1] } },
+    pieces({ a0, b0, p0, p1, p2, r0, r1, s0, s2 }) {
+      const u0 = add(s0, [0, b0 - a0]);
+      const u1 = add(s0, [b0 - a0, b0 - a0]);
+      const u2 = add(s0, [b0 - a0, 0]);
+      return [
+        [u0, s2, p2],
+        [u2, p0, p2],
+        [u0, u1, p2],
+        [u2, u1, p2],
+        [u2, u1, u0, s0],
+        [p0, p1, r0],
+        [r1, p1, r0]
+      ];
+    }
+  }
+];
+
+// Each puzzle gets its own hue, in rainbow order down the list, and its
+// pieces are shades of that hue. Set to false to go back to mixed colors.
+const PER_PUZZLE_COLORS = true;
+const HUES = [4, 26, 46, 125, 168, 192, 215, 240, 272, 325];   // red, orange, yellow, green, teal, cyan, blue, indigo, violet, pink
+PUZZLES.forEach((def, i) => { def.hue = HUES[i % HUES.length]; });
+function pieceColor(hue, i, n) {
+  if (!PER_PUZZLE_COLORS) return COLORS[i % COLORS.length];
+  // Spread the shades from dark to light, stepping by the golden ratio so
+  // pieces listed next to each other (often neighbours) differ the most.
+  // Hues also drift a little toward the neighbouring colours (up to about
+  // ±11°, less for puzzles with few pieces), on a different step so that
+  // two pieces close in lightness tend to differ in hue instead.
+  const t = n > 1 ? ((i * 0.618034) % 1) : 0.5;
+  const drift = n > 1 ? ((i * 0.754878 + 0.5) % 1) * 2 - 1 : 0;
+  const h = hue + drift * Math.min(11, 2 + 1.1 * n);
+  const yellowish = hue > 35 && hue < 70;
+  const light = yellowish ? 40 + 34 * t : 34 + 38 * t;
+  const sat = yellowish ? 85 : 62;
+  return `hsl(${h.toFixed(1)} ${sat}% ${light.toFixed(1)}%)`;
+}
+
+for (const def of PUZZLES) {
+  def.build = r => {
+    // At exactly 1 : 1 some cuts collapse and many corners land on top of each
+    // other by accident, which would confuse the morphing. The figure is drawn
+    // a hair short of it instead (0.999 : 1, indistinguishable on screen).
+    const f = figure(Math.min(r, 0.999), 1);
+    return {
+      name: def.name, hue: def.hue, triangle: f.triangle, squares: f.squares, pieces: def.pieces(f), spawn: def.spawn || {},
+      landmarks: {
+        pts: [f.p0, f.p1, f.p2, f.r0, f.r1, f.s0, f.s2, f.t1, f.t2],
+        // edges of squares a, b and c, as index pairs into pts
+        edges: [[1, 0], [0, 3], [3, 4], [4, 1], [0, 2], [2, 6], [6, 5], [5, 0], [2, 1], [1, 7], [7, 8], [8, 2]]
+      }
+    };
+  };
+}
+
+const COLORS = [
+  "#E4572E", "#F2A541", "#4C9F70", "#3A86C8", "#8E5CB5", "#D9488B",
+  "#2BB3A6", "#B5651D", "#7A8B12", "#C23B3B", "#5B6CFF", "#E07A1F",
+  "#3F7F8C", "#A64D79", "#6A994E", "#9C6644"
+];
+
+/* ------------------------------------------------------------------ */
+const NS = "http://www.w3.org/2000/svg";
+const board = document.getElementById("board");
+const eqEl = document.getElementById("eq");
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+let puzzle, pieces = [], guides = [], view, pieceLayer, ghostLayer, targetEl, snapRing, snapLine, drag = null, rot = null;
+
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const toPoints = pts => pts.map(([x, y]) => `${x},${-y}`).join(" ");
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1]];
+const add = (a, b) => [a[0] + b[0], a[1] + b[1]];
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1];
+const cross = (a, b) => a[0] * b[1] - a[1] * b[0];
+const len = a => Math.hypot(a[0], a[1]);
+const shift = (P, d) => P.map(p => add(p, d));
+
+function centroid(P) {
+  let A = 0, cx = 0, cy = 0;
+  for (let i = 0; i < P.length; i++) {
+    const p = P[i], q = P[(i + 1) % P.length], c = cross(p, q);
+    A += c; cx += (p[0] + q[0]) * c; cy += (p[1] + q[1]) * c;
+  }
+  if (Math.abs(A) < 1e-12) return P[0];
+  return [cx / (3 * A), cy / (3 * A)];
+}
+
+// A view big enough for every puzzle in the list, so the board holds still while the slider moves.
+// A piece with no area (it only exists over part of the slider's range) is hidden and ignored.
+const areaOf = P => P.reduce((s, p, i) => s + cross(p, P[(i + 1) % P.length]), 0) / 2;
+// (Pieces smaller than this, about a pixel across, are treated as having no area.)
+const ACTIVE_AREA = 1e-5;
+const isActive = pc => Math.abs(areaOf(pc.home)) > ACTIVE_AREA;
+const activePieces = () => pieces.filter(isActive);
+
+function viewFor(list) {
+  const all = list.flatMap(p => [...p.pieces, p.triangle, ...Object.values(p.squares)]).flat();
+  const xs = all.map(q => q[0]), ys = all.map(q => q[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const pad = Math.max(maxX - minX, maxY - minY) * 0.08;
+  return { x: minX - pad, y: minY - pad, w: maxX - minX + 2 * pad, h: maxY - minY + 2 * pad };
+}
+
+function load(p, keep = false) {
+  const zOrder = keep && pieceLayer ? [...pieceLayer.children].map(e => e.__piece) : null;
+  puzzle = p;
+  drag = null;
+  rot = null;
+  board.innerHTML = "";
+  if (familyView) applyView();
+  else { view = viewFor([p]); board.setAttribute("viewBox", `${view.x} ${-(view.y + view.h)} ${view.w} ${view.h}`); }
+
+  // graph-paper grid
+  const raw = Math.max(view.w, view.h) / 24;
+  const mag = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 5, 10].map(m => m * mag).find(s => s >= raw) || raw;
+  const grid = el("g", { class: "grid" }, board);
+  // the grid runs well past the view so it also fills any margin around it
+  const gx0 = view.x - view.w, gx1 = view.x + 2 * view.w, gy0 = view.y - view.h, gy1 = view.y + 2 * view.h;
+  for (let x = Math.ceil(gx0 / step) * step; x <= gx1; x += step) {
+    el("line", { x1: x, x2: x, y1: -gy0, y2: -gy1, class: Math.abs(Math.round(x / step) % 5) === 0 ? "major" : "" }, grid);
+  }
+  for (let y = Math.ceil(gy0 / step) * step; y <= gy1; y += step) {
+    el("line", { y1: -y, y2: -y, x1: gx0, x2: gx1, class: Math.abs(Math.round(y / step) % 5) === 0 ? "major" : "" }, grid);
+  }
+
+  // figure outlines and labels
+  el("polygon", { points: toPoints(p.triangle), class: "tri" }, board);
+  for (const key of ["a", "b"]) el("polygon", { points: toPoints(p.squares[key]), class: "home" }, board);
+  targetEl = el("polygon", { points: toPoints(p.squares.c), class: "target" }, board);
+  for (const key of ["a", "b", "c"]) {
+    const sq = p.squares[key], c = centroid(sq), side = len(sub(sq[1], sq[0]));
+    const t = el("text", { x: c[0], y: -c[1], "font-size": side * 0.32, "text-anchor": "middle", "dominant-baseline": "central", class: "sq-label" }, board);
+    t.textContent = key + "²";
+  }
+  guides = [p.squares.a, p.squares.b, p.squares.c];
+
+  // Faint copies of each piece in its starting spot, revealed once the puzzle is solved.
+  ghostLayer = el("g", { class: "ghosts", "aria-hidden": "true" }, board);
+  if (PAINTERLY) addPaintFilter(board, view.w);
+  pieceLayer = el("g", PAINTERLY ? { class: "painted" } : {}, board);
+  if (!keep) contactCache = null;
+  if (!keep) pieces = p.pieces.map((pts, i) => ({ id: i, th: 0, f: 0, home: pts.map(q => [...q]), pts: pts.map(q => [...q]) }));
+  for (const pc of pieces) {
+    const i = pc.id, color = pieceColor(p.hue, i, pieces.length);
+    pc.anim = false;
+    pc.ghost = el("polygon", { class: "ghost", points: toPoints(pc.home), fill: color, stroke: color, style: `transition-delay: ${i * 90}ms` }, ghostLayer);
+    pc.el = el("polygon", {
+      class: "piece", fill: color, tabindex: 0, role: "button",
+      "aria-label": `Piece ${i + 1}. Arrow keys move it, [ and ] turn it, F flips it.`
+    });
+    pc.el.__piece = pc;
+    if (!isActive(pc)) {
+      pc.el.style.display = "none"; pc.ghost.style.display = "none";
+      pc.el.setAttribute("tabindex", "-1"); pc.el.setAttribute("aria-hidden", "true");
+    }
+    draw(pc);
+  }
+  for (const pc of zOrder || pieces) pieceLayer.appendChild(pc.el);
+  snapLine = el("line", { class: "snap-line", visibility: "hidden" }, board);
+  snapRing = el("circle", { class: "snap-ring", r: 0, cx: 0, cy: 0, visibility: "hidden" }, board);
+  update();
+}
+
+// Painterly texture: short brush streaks lit from the upper left (so the
+// paint looks thick), a little colour jitter between dabs, and slightly
+// wobbly edges. Set PAINTERLY to false for flat colours.
+const PAINTERLY = false;
+function addPaintFilter(svg, size) {
+  const u = 1 / size;                                   // one board-width, in board units
+  const defs = el("defs", {}, svg);
+  const f = el("filter", { id: "paint", x: "-3%", y: "-3%", width: "106%", height: "106%", "color-interpolation-filters": "sRGB" }, defs);
+  // brush streaks: noise stretched in one direction, used as a bumpy paint surface
+  el("feTurbulence", { type: "fractalNoise", baseFrequency: `${22 * u} ${70 * u}`, numOctaves: 3, seed: 4, result: "strokes" }, f);
+  const light = el("feDiffuseLighting", { in: "strokes", "lighting-color": "#ffffff", surfaceScale: 1.6, result: "light" }, f);
+  el("feDistantLight", { azimuth: 225, elevation: 62 }, light);
+  // dabs of slightly lighter and darker paint
+  el("feTurbulence", { type: "fractalNoise", baseFrequency: `${16 * u} ${11 * u}`, numOctaves: 2, seed: 11, result: "dabs" }, f);
+  el("feColorMatrix", { in: "dabs", type: "matrix", values: "0.35 0 0 0 0.78  0.35 0 0 0 0.78  0.35 0 0 0 0.78  0 0 0 0 1", result: "tint" }, f);
+  el("feBlend", { in: "SourceGraphic", in2: "tint", mode: "multiply", result: "tintedAll" }, f);
+  el("feComposite", { in: "tintedAll", in2: "SourceGraphic", operator: "in", result: "tinted" }, f);
+  // shade the colour by the bumps: 75% flat colour, plus up to 36% more where the light catches
+  el("feComposite", { in: "tinted", in2: "light", operator: "arithmetic", k1: 0.36, k2: 0.75, k3: 0, k4: 0, result: "lit" }, f);
+  // slightly wobbly, hand-painted edges
+  el("feDisplacementMap", { in: "lit", in2: "strokes", scale: 0.004 * size, xChannelSelector: "R", yChannelSelector: "G" }, f);
+}
+
+function draw(pc) { pc.el.setAttribute("points", toPoints(pc.pts)); }
+function bringToFront(pc) { pieceLayer.appendChild(pc.el); }
+
+function toWorld(e) {
+  const pt = board.createSVGPoint();
+  pt.x = e.clientX; pt.y = e.clientY;
+  const q = pt.matrixTransform(board.getScreenCTM().inverse());
+  return [q.x, -q.y];
+}
+const pxToWorld = px => px / board.getScreenCTM().a;
+
+/* ------------------------------ MORPHING ------------------------------
+   When the ratio changes, every piece keeps its quarter-turn count and we
+   solve for new positions that preserve the contacts it had: corners that
+   met stay met, a corner lying on an edge stays on that edge's line, and
+   contacts with the figure's own corners and edges hold too. Each contact
+   is a linear equation in the pieces' translations, so all pieces are
+   solved together by least squares. A faint pull toward each piece's old
+   centre settles anything the contacts leave free. */
+const CONTACT_EPS = 1e-5;   // figure scale: the hypotenuse has length 1
+// a piece's pose: flipped left-right if f is 1, then turned by th radians (counter-clockwise)
+const rotA = (p, th) => { const c = Math.cos(th), s = Math.sin(th); return [p[0] * c - p[1] * s, p[0] * s + p[1] * c]; };
+const poseOf = (h, pc) => rotA(pc.f ? [-h[0], h[1]] : h, pc.th);
+const rotK = (p, k) => { let [x, y] = p; for (let i = 0; i < k; i++) [x, y] = [y, -x]; return [x, y]; };
+const unit = v => { const L = len(v) || 1; return [v[0] / L, v[1] / L]; };
+
+function onSegInterior(x, a, b) {
+  const ab = sub(b, a), L = len(ab);
+  if (L < 1e-12) return false;
+  const t = dot(sub(x, a), ab) / (L * L);
+  if (t <= 1e-6 || t >= 1 - 1e-6) return false;
+  return Math.abs(cross(ab, sub(x, a))) / L < CONTACT_EPS;
+}
+
+// Which edges of each piece lie along (or parallel to) an edge of the figure
+// or of another piece. These set each piece's angle at the new ratio.
+function findAligns(lm) {
+  const out = [];
+  pieces.forEach((pcA, A) => {
+    if (!isActive(pcA)) return;
+    edges(pcA.pts).forEach(([a, b], i) => {
+      if (len(sub(b, a)) < 1e-9) return;
+      const da = unit(sub(b, a));
+      const consider = (p, q, ref) => {
+        if (len(sub(q, p)) < 1e-9) return;
+        const u = unit(sub(q, p));
+        if (Math.abs(cross(da, u)) > 1e-5) return;
+        const ta = [dot(sub(a, p), u), dot(sub(b, p), u)], tq = dot(sub(q, p), u);
+        const overlap = Math.min(Math.max(...ta), tq) - Math.max(Math.min(...ta), 0);
+        const flush = Math.abs(cross(u, sub(a, p))) < CONTACT_EPS && overlap > CONTACT_EPS;
+        out.push({ A, i, ref, s: Math.sign(dot(da, u)), prio: (flush ? 0 : 2) + (ref.B !== undefined ? 1 : 0) });
+      };
+      lm.edges.forEach(([j1, j2]) => consider(lm.pts[j1], lm.pts[j2], { j1, j2 }));
+      pieces.forEach((pcB, B) => { if (B !== A && isActive(pcB)) edges(pcB.pts).forEach(([p, q], m) => consider(p, q, { B, m })); });
+    });
+  });
+  return out;
+}
+
+function findContacts(lm, keepRepeats = false) {
+  const rep = (P, i) => P.some((y, k) => k !== i && len(sub(y, P[i])) < CONTACT_EPS);
+  const C = [], n = pieces.length;
+  for (let A = 0; A < n; A++) {
+    if (!isActive(pieces[A])) continue;
+    const PA = pieces[A].pts;
+    PA.forEach((x, i) => {
+      // a repeated corner (same spot as an earlier one) only counts once
+      if (!keepRepeats && PA.slice(0, i).some(y => len(sub(x, y)) < CONTACT_EPS)) return;
+      // A corner meeting a corner is recorded as the meeting point plus "lies on
+      // the line of each edge at the other corner" (and vice versa). If the two
+      // corners only met by accident, usually one of those lines still holds
+      // (the corner slides along that edge), and the solver drops the rest.
+      lm.pts.forEach((L, j) => {
+        if (len(sub(x, L)) >= CONTACT_EPS) return;
+        C.push({ t: "VL", A, i, j });
+        if (rep(PA, i)) return;   // doubled-up corner: just the point
+        lm.edges.forEach(([j1, j2]) => { if (j1 === j || j2 === j) C.push({ t: "VLe", A, i, j1, j2 }); });
+        for (const m of [(i + PA.length - 1) % PA.length, i]) {
+          const nn = (m + 1) % PA.length;
+          if (len(sub(PA[nn], PA[m])) > 1e-9) C.push({ t: "LE", A, m, n: nn, j });
+        }
+      });
+      lm.edges.forEach(([j1, j2]) => { if (onSegInterior(x, lm.pts[j1], lm.pts[j2])) C.push({ t: "VLe", A, i, j1, j2 }); });
+      for (let B = 0; B < n; B++) {
+        if (B === A || !isActive(pieces[B])) continue;
+        const PB = pieces[B].pts;
+        if (B > A) PB.forEach((y, j) => {
+          if (len(sub(x, y)) >= CONTACT_EPS) return;
+          C.push({ t: "VV", A, i, B, j });
+          if (rep(PA, i) || rep(PB, j)) return;   // doubled-up corner: just the point
+          for (const [P, Q, I, J, PP] of [[A, B, i, j, PB], [B, A, j, i, PA]]) {
+            for (const m of [(J + PP.length - 1) % PP.length, J]) {
+              const nn = (m + 1) % PP.length;
+              if (len(sub(PP[nn], PP[m])) > 1e-9) C.push({ t: "VE", A: P, i: I, B: Q, m, n: nn });
+            }
+          }
+        });
+        PB.forEach((y, m) => { const nn = (m + 1) % PB.length; if (onSegInterior(x, y, PB[nn])) C.push({ t: "VE", A, i, B, m, n: nn }); });
+      }
+    });
+    lm.pts.forEach((L, j) => PA.forEach((y, m) => {
+      const nn = (m + 1) % PA.length;
+      if (onSegInterior(L, y, PA[nn])) C.push({ t: "LE", A, m, n: nn, j });
+    }));
+  }
+  // flag contacts made by a corner that shares its spot with another corner of the same piece
+  const repeated = (A, i) => pieces[A].pts.some((y, k) => k !== i && len(sub(y, pieces[A].pts[i])) < CONTACT_EPS);
+  for (const c of C) c.amb = c.t === "LE" ? false : repeated(c.A, c.i) || (c.t === "VV" && repeated(c.B, c.j));
+  return C;
+}
+
+function solveLinear(M, v) {
+  const N = v.length;
+  for (let c = 0; c < N; c++) {
+    let piv = c;
+    for (let r = c + 1; r < N; r++) if (Math.abs(M[r][c]) > Math.abs(M[piv][c])) piv = r;
+    [M[c], M[piv]] = [M[piv], M[c]]; [v[c], v[piv]] = [v[piv], v[c]];
+    for (let r = c + 1; r < N; r++) {
+      const f = M[r][c] / M[c][c];
+      if (!f) continue;
+      for (let k = c; k < N; k++) M[r][k] -= f * M[c][k];
+      v[r] -= f * v[c];
+    }
+  }
+  const x = new Array(N).fill(0);
+  for (let r = N - 1; r >= 0; r--) {
+    let s = v[r];
+    for (let k = r + 1; k < N; k++) s -= M[r][k] * x[k];
+    x[r] = s / M[r][r];
+  }
+  return x;
+}
+
+// Contacts are recorded once, when the slider starts moving after the pieces
+// were last touched, and reused for the whole sweep. That way a ratio where
+// extra corners happen to line up (1 : 1, say) can't add contacts that
+// don't hold at other ratios.
+let contactCache = null;
+// Set right after stopping exactly on a ratio where a puzzle's cut changes.
+// There, corners that are about to separate sit on top of each other, so every
+// copy keeps its contacts and any that stop holding get dropped by the solver.
+let atBreak = false;
+
+function morph(p, render = true) {
+  const wasActive = pieces.map(isActive);
+  // A piece about to shrink to nothing remembers which piece it is touching
+  // and how it sits relative to it, so it can come back in the same place.
+  pieces.forEach((pc, ci) => {
+    if (!wasActive[ci] || Math.abs(areaOf(p.pieces[ci])) > ACTIVE_AREA) return;
+    pc.anchor = null;
+    pieces.forEach((par, pi) => {
+      if (pc.anchor || pi === ci || !wasActive[pi] || Math.abs(areaOf(p.pieces[pi])) <= ACTIVE_AREA) return;
+      pc.pts.forEach((cv, a) => par.pts.forEach((pv, b) => {
+        if (pc.anchor || len(sub(cv, pv)) > CONTACT_EPS) return;
+        const g = pc.f ^ par.f;
+        pc.anchor = { from: pi, at: [a, b], turn: pc.th - (g ? -par.th : par.th), flip: g };
+      }));
+    });
+  });
+  if (!contactCache) contactCache = { contacts: findContacts(puzzle.landmarks, atBreak), aligns: findAligns(puzzle.landmarks) };
+  atBreak = false;
+  const n = pieces.length, N = 2 * n;
+  const lm = p.landmarks.pts;
+
+  // New angles: a piece lined up with the figure's edges (or a piece that is)
+  // turns to stay lined up. Pieces with no alignment keep their angle.
+  const th = pieces.map(pc => pc.th), done = pieces.map(() => false);
+  const homeDir = (A, i) => {
+    const h = p.pieces[A], d = sub(h[(i + 1) % h.length], h[i]);
+    return pieces[A].f ? [-d[0], d[1]] : d;
+  };
+  const refDir = ref => ref.B === undefined ? sub(lm[ref.j2], lm[ref.j1]) : rotA(homeDir(ref.B, ref.m), th[ref.B]);
+  const pending = contactCache.aligns.slice();
+  for (;;) {
+    let best = null;
+    for (const al of pending) {
+      if (done[al.A] || (al.ref.B !== undefined && !done[al.ref.B])) continue;
+      if (!best || al.prio < best.prio) best = al;
+    }
+    if (!best) break;
+    pending.splice(pending.indexOf(best), 1);
+    const dh = homeDir(best.A, best.i), dr = refDir(best.ref);
+    if (len(dh) < 1e-9 || len(dr) < 1e-9) continue;
+    th[best.A] = Math.atan2(dr[1], dr[0]) - Math.atan2(dh[1], dh[0]) + (best.s < 0 ? Math.PI : 0);
+    done[best.A] = true;
+  }
+  pieces.forEach((pc, A) => { pc.th = th[A]; });
+  // where each piece's vertices sit after turning, before translating
+  const R = pieces.map((pc, A) => p.pieces[A].map(h => poseOf(h, pc)));
+
+  // each contact becomes one or two rows: Σ value·T[column] = rhs
+  const rowsFor = c => {
+    const crossRow = (d, terms, rhs) => ({ coef: terms.flatMap(([A, sg]) => [[2 * A, -d[1] * sg], [2 * A + 1, d[0] * sg]]), rhs });
+    if (c.t === "VL") {
+      const x = R[c.A][c.i], L = lm[c.j];
+      return [{ coef: [[2 * c.A, 1]], rhs: L[0] - x[0] }, { coef: [[2 * c.A + 1, 1]], rhs: L[1] - x[1] }];
+    }
+    if (c.t === "VLe") {
+      const e = sub(lm[c.j2], lm[c.j1]);
+      if (len(e) < 1e-6) return [];        // this edge has shrunk to nothing here
+      const d = unit(e);
+      return [crossRow(d, [[c.A, 1]], cross(d, sub(lm[c.j1], R[c.A][c.i])))];
+    }
+    if (c.t === "VV") {
+      const g = sub(R[c.B][c.j], R[c.A][c.i]);
+      return [{ coef: [[2 * c.A, 1], [2 * c.B, -1]], rhs: g[0] }, { coef: [[2 * c.A + 1, 1], [2 * c.B + 1, -1]], rhs: g[1] }];
+    }
+    if (c.t === "VE") {
+      const e = sub(R[c.B][c.n], R[c.B][c.m]);
+      if (len(e) < 1e-6) return [];
+      const d = unit(e);
+      return [crossRow(d, [[c.A, 1], [c.B, -1]], cross(d, sub(R[c.B][c.m], R[c.A][c.i])))];
+    }
+    const e = sub(R[c.A][c.n], R[c.A][c.m]);     // "LE"
+    if (len(e) < 1e-6) return [];
+    const d = unit(e);
+    return [crossRow(d, [[c.A, 1]], cross(d, sub(lm[c.j], R[c.A][c.m])))];
+  };
+  // gentle pull: keep each piece's centre where it was
+  const anchors = pieces.flatMap((pc, A) => {
+    const T0 = sub(centroid(pc.pts), centroid(R[A]));
+    return [{ coef: [[2 * A, 1]], rhs: T0[0] }, { coef: [[2 * A + 1, 1]], rhs: T0[1] }];
+  });
+
+  const solve = groups => {
+    const M = Array.from({ length: N }, () => new Array(N).fill(0)), v = new Array(N).fill(0);
+    const add1 = ({ coef, rhs }, w) => {
+      for (const [c1, a1] of coef) {
+        for (const [c2, a2] of coef) M[c1][c2] += w * a1 * a2;
+        v[c1] += w * a1 * rhs;
+      }
+    };
+    for (const g of groups) for (const r of g.rows) add1(r, g.w ?? 1);
+    for (const r of anchors) add1(r, 1e-8);
+    return solveLinear(M, v);
+  };
+  const residual = (rows, T) => Math.max(...rows.map(({ coef, rhs }) => Math.abs(coef.reduce((s, [c, a]) => s + a * T[c], -rhs))));
+
+  // If some contacts can't all hold at this ratio, some were accidents of the
+  // old ratio (two corners that just happened to line up there). The genuine
+  // contacts agree with each other and usually outnumber the accidents, so we
+  // solve robustly (reweighting so that a few badly strained contacts stop
+  // mattering), then drop whatever is still strained and solve again.
+  const TOL = 1e-7;
+  let groups = contactCache.contacts.map(c => ({ c, rows: rowsFor(c) }));
+  let T = solve(groups);
+  const strained = (g, T) => residual(g.rows, T) > TOL;
+  const drop = gone => {
+    groups = groups.filter(g => !gone.has(g.c));
+    contactCache.contacts = contactCache.contacts.filter(c => !gone.has(c));
+  };
+  // Contacts made by corners sitting on top of each other (where a cut changes)
+  // are the least trustworthy: while any are strained, drop the worst of them.
+  for (let guard = 0; guard < groups.length; guard++) {
+    let worst = null, wr = TOL;
+    for (const g of groups) if (g.c.amb) { const r = residual(g.rows, T); if (r > wr) { wr = r; worst = g; } }
+    if (!worst) break;
+    drop(new Set([worst.c]));
+    T = solve(groups);
+  }
+  if (groups.some(g => strained(g, T))) {
+    for (let it = 0; it < 40; it++) {
+      for (const g of groups) g.w = 1 / Math.max(residual(g.rows, T), 1e-9);
+      T = solve(groups);
+    }
+    const bad = new Set(groups.filter(g => strained(g, T)).map(g => g.c));
+    if (bad.size) {
+      drop(bad);
+      for (const g of groups) g.w = 1;
+      T = solve(groups);
+    }
+  }
+
+  pieces.forEach((pc, A) => {
+    pc.home = p.pieces[A].map(q => [...q]);
+    pc.pts = R[A].map(x => [x[0] + T[2 * A], x[1] + T[2 * A + 1]]);
+  });
+  // a piece appearing as the ratio crosses into its range starts out beside its parent piece
+  pieces.forEach((child, ci) => {
+    if (wasActive[ci] || !isActive(child)) return;
+    const sp = child.anchor || p.spawn[ci];
+    child.anchor = null;
+    if (!sp) return;
+    const par = pieces[sp.from];
+    const atHome = !par.f && Math.abs(wrapPi(par.th)) < 1e-9 && par.pts.every((q, i) => len(sub(q, par.home[i])) < 1e-6);
+    if (atHome) { child.th = 0; child.f = 0; }
+    else {
+      // the child's pose relative to its parent: an extra turn, and a flip if it is mirrored
+      const g = sp.flip || 0;
+      child.f = par.f ^ g;
+      child.th = (sp.turn || 0) + (g ? -par.th : par.th);
+    }
+    const P = child.home.map(h => poseOf(h, child));
+    const t = sub(atHome ? child.home[sp.at[0]] : par.pts[sp.at[1]], P[sp.at[0]]);
+    child.pts = P.map(q => add(q, t));
+  });
+  if (pieces.some((pc, i) => isActive(pc) !== wasActive[i])) contactCache = null;
+  if (render) load(p, true); else puzzle = p;
+}
+
+/* ------------------------------ SNAPPING ------------------------------
+   Pass 1: a vertex within VERTEX_PX of another vertex wins outright.
+           Otherwise the closest vertex-to-edge contact within EDGE_PX.
+   Pass 2: after an edge contact, the piece may also slide along that
+           edge to catch a second vertex or edge (so corners seat cleanly). */
+const VERTEX_PX = 16, EDGE_PX = 9;
+
+function closestOnSeg(p, a, b) {
+  const ab = sub(b, a), L2 = dot(ab, ab);
+  const t = L2 ? Math.max(0, Math.min(1, dot(sub(p, a), ab) / L2)) : 0;
+  return [a[0] + ab[0] * t, a[1] + ab[1] * t];
+}
+function edges(P) { return P.map((p, i) => [p, P[(i + 1) % P.length]]); }
+
+function firstPass(P, others, Rv, Re) {
+  let bestV = null, bestE = null;
+  const otherEdges = others.flatMap(edges), myEdges = edges(P);
+  for (const v of P) for (const Q of others) for (const w of Q) {
+    const d = len(sub(w, v));
+    if (d < Rv && (!bestV || d < bestV.dist)) bestV = { dist: d, d: sub(w, v), at: w, kind: "vertex" };
+  }
+  if (bestV) return bestV;
+  for (const v of P) for (const [a, b] of otherEdges) {
+    const p = closestOnSeg(v, a, b), d = len(sub(p, v));
+    if (d < Re && (!bestE || d < bestE.dist)) bestE = { dist: d, d: sub(p, v), at: p, dir: sub(b, a), kind: "edge" };
+  }
+  for (const Q of others) for (const w of Q) for (const [a, b] of myEdges) {
+    const p = closestOnSeg(w, a, b), d = len(sub(w, p));
+    if (d < Re && (!bestE || d < bestE.dist)) bestE = { dist: d, d: sub(w, p), at: w, dir: sub(b, a), kind: "edge" };
+  }
+  return bestE;
+}
+
+// Moving P by λ·t only: find the smallest |λ| that creates a new contact.
+function slidePass(P, others, t, Rv, Re) {
+  const u = [t[0] / len(t), t[1] / len(t)], n = [-u[1], u[0]];
+  const tol = Re * 0.05;
+  let bestV = null, bestE = null;
+  for (const v of P) for (const Q of others) for (const w of Q) {
+    const dv = sub(w, v);
+    if (Math.abs(dot(dv, n)) > tol) continue;
+    const lam = dot(dv, u);
+    if (Math.abs(lam) < Rv && (!bestV || Math.abs(lam) < Math.abs(bestV.lam))) bestV = { lam, at: w };
+  }
+  if (bestV) return { d: [u[0] * bestV.lam, u[1] * bestV.lam], at: bestV.at };
+  const tryHit = (p, a, b, sign, at) => {
+    // solve p + sign·λ·u = a + μ(b − a)
+    const ab = sub(b, a), den = cross(u, ab) * sign;
+    if (Math.abs(den) < 1e-9) return;
+    const ap = sub(a, p), lam = cross(ap, ab) / den, mu = cross(ap, u) * sign / den;
+    if (mu < -1e-9 || mu > 1 + 1e-9 || Math.abs(lam) >= Re) return;
+    if (!bestE || Math.abs(lam) < Math.abs(bestE.lam)) bestE = { lam, at: at || [p[0] + sign * lam * u[0], p[1] + sign * lam * u[1]] };
+  };
+  const otherEdges = others.flatMap(edges);
+  for (const v of P) for (const [a, b] of otherEdges) tryHit(v, a, b, 1);
+  for (const Q of others) for (const w of Q) for (const [a, b] of edges(P)) tryHit(w, a, b, -1, w);
+  if (bestE) return { d: [u[0] * bestE.lam, u[1] * bestE.lam], at: bestE.at };
+  return null;
+}
+
+function snap(P, self) {
+  const Rv = pxToWorld(VERTEX_PX), Re = pxToWorld(EDGE_PX);
+  const others = [...activePieces().filter(q => q !== self).map(q => q.pts), ...guides];
+  const first = firstPass(P, others, Rv, Re);
+  if (!first) return { d: [0, 0], at: null };
+  if (first.kind === "vertex") return first;
+  const second = slidePass(shift(P, first.d), others, first.dir, Rv, Re);
+  if (second) return { d: add(first.d, second.d), at: second.at };
+  return first;
+}
+
+function showRing(at) {
+  if (!at) { snapRing.setAttribute("visibility", "hidden"); return; }
+  snapRing.setAttribute("cx", at[0]);
+  snapRing.setAttribute("cy", -at[1]);
+  snapRing.setAttribute("r", pxToWorld(7));
+  snapRing.setAttribute("visibility", "visible");
+}
+
+function clampToView(P) {
+  const c = centroid(P);
+  const cx = Math.min(view.x + view.w, Math.max(view.x, c[0]));
+  const cy = Math.min(view.y + view.h, Math.max(view.y, c[1]));
+  return shift(P, [cx - c[0], cy - c[1]]);
+}
+
+function place(pc, P) {
+  contactCache = null;
+  P = clampToView(P);
+  const s = snap(P, pc);
+  pc.pts = shift(P, s.d);
+  draw(pc);
+  return s;
+}
+
+/* ------------------------------ ROTATION ------------------------------
+   Pieces turn freely about their centre. While turning, a piece clicks into
+   line when one of its edges comes within ANGLE_SNAP of parallel to an edge
+   of another piece or of the figure. */
+const ANGLE_SNAP = 3 * Math.PI / 180;
+const wrapPi = x => x - 2 * Math.PI * Math.round(x / (2 * Math.PI));
+const wrapHalf = x => x - Math.PI * Math.round(x / Math.PI);
+const turned = (P, c, ang) => P.map(q => add(c, rotA(sub(q, c), ang)));
+
+function angleSnap(pc, base, ang) {
+  const refs = [...activePieces().filter(q => q !== pc).map(q => q.pts), ...guides].flatMap(edges).filter(([p, q]) => len(sub(q, p)) > 1e-9);
+  const own = edges(base).filter(([p, q]) => len(sub(q, p)) > 1e-9).map(([p, q]) => Math.atan2(q[1] - p[1], q[0] - p[0]) + ang);
+  let best = null;
+  for (const [p, q] of refs) {
+    const ra = Math.atan2(q[1] - p[1], q[0] - p[0]);
+    for (const oa of own) {
+      const d = wrapHalf(ra - oa);
+      if (Math.abs(d) < ANGLE_SNAP && (!best || Math.abs(d) < Math.abs(best.d))) best = { d, seg: [p, q] };
+    }
+  }
+  return best;
+}
+
+function showSnapLine(seg) {
+  if (!seg) { snapLine.setAttribute("visibility", "hidden"); return; }
+  snapLine.setAttribute("x1", seg[0][0]); snapLine.setAttribute("y1", -seg[0][1]);
+  snapLine.setAttribute("x2", seg[1][0]); snapLine.setAttribute("y2", -seg[1][1]);
+  snapLine.setAttribute("visibility", "visible");
+}
+
+function startTurn(pc, ids, startAngle) {
+  bringToFront(pc);
+  pc.el.classList.add("dragging");
+  rot = { pc, ids, c: centroid(pc.pts), base: pc.pts.map(q => [...q]), start: startAngle, raw: 0, ang: 0 };
+}
+function turnTo(angle) {
+  rot.raw += wrapPi(angle - rot.start - rot.raw);
+  const s = angleSnap(rot.pc, rot.base, rot.raw);
+  rot.ang = rot.raw + (s ? s.d : 0);
+  rot.pc.pts = turned(rot.base, rot.c, rot.ang);
+  draw(rot.pc);
+  showSnapLine(s && s.seg);
+}
+function endTurn() {
+  const { pc, ang } = rot;
+  rot = null;
+  showSnapLine(null);
+  pc.el.classList.remove("dragging");
+  pc.th += ang;
+  place(pc, pc.pts);
+  update();
+}
+function turnBy(pc, ang) {
+  pc.th += ang;
+  place(pc, turned(pc.pts, centroid(pc.pts), ang));
+  update();
+}
+
+// Mirror a piece left-to-right about its centre.
+function flip(pc) {
+  if (pc.anim) return;
+  const c = centroid(pc.pts), base = pc.pts.map(p => [...p]);
+  const finish = () => {
+    place(pc, base.map(([x, y]) => [2 * c[0] - x, y]));
+    // mirroring after a turn by th equals mirroring first, then turning by −th
+    pc.th = -pc.th;
+    pc.f = 1 - pc.f;
+    pc.anim = false;
+    showRing(null);
+    update();
+  };
+  bringToFront(pc);
+  if (reduceMotion) return finish();
+  pc.anim = true;
+  const t0 = performance.now(), dur = 220;
+  const frame = now => {
+    const t = Math.min(1, (now - t0) / dur), sx = Math.cos(Math.PI * (1 - (1 - t) ** 2));
+    pc.pts = base.map(([x, y]) => [c[0] + (x - c[0]) * sx, y]);
+    draw(pc);
+    if (t < 1) requestAnimationFrame(frame); else finish();
+  };
+  requestAnimationFrame(frame);
+}
+
+/* ------------------------------ INPUT ------------------------------ */
+const pieceOf = target => target && target.__piece;
+const touches = new Map();   // touch/pen pointers currently down, by id
+const twistAngle = (i1, i2) => {
+  const p = touches.get(i1), q = touches.get(i2);
+  return Math.atan2(-(q[1] - p[1]), q[0] - p[0]);   // screen y points down
+};
+const mouseAngle = (e, c) => { const w = toWorld(e); return Math.atan2(w[1] - c[1], w[0] - c[0]); };
+
+board.addEventListener("pointerdown", e => {
+  if (e.pointerType !== "mouse") touches.set(e.pointerId, [e.clientX, e.clientY]);
+
+  // a second finger while holding a piece: twist to turn it
+  if (drag && drag.type !== "mouse" && e.pointerId !== drag.id && !rot && !drag.held) {
+    e.preventDefault();
+    board.setPointerCapture(e.pointerId);
+    clearTimeout(drag.timer);
+    const pc = drag.pc, ids = [drag.id, e.pointerId];
+    drag = null;
+    showRing(null);
+    startTurn(pc, ids, twistAngle(...ids));
+    return;
+  }
+
+  const pc = pieceOf(e.target);
+  if (!pc || pc.anim || drag || rot) return;
+
+  // right button (or Ctrl-click on a Mac): turn, or flip with Shift
+  if (e.button === 2 || (e.button === 0 && e.ctrlKey)) {
+    e.preventDefault();
+    if (e.shiftKey) { flip(pc); return; }
+    board.setPointerCapture(e.pointerId);
+    pc.el.focus({ preventScroll: true });
+    startTurn(pc, [e.pointerId], 0);
+    rot.start = mouseAngle(e, rot.c);
+    return;
+  }
+  if (e.button !== 0) return;
+
+  e.preventDefault();
+  board.setPointerCapture(e.pointerId);
+  bringToFront(pc);
+  pc.el.focus({ preventScroll: true });
+  drag = { pc, id: e.pointerId, start: toWorld(e), orig: pc.pts.map(p => [...p]), sx: e.clientX, sy: e.clientY, moved: false, type: e.pointerType };
+  pc.el.classList.add("dragging");
+  if (e.pointerType !== "mouse") {
+    // press and hold to flip on touch screens
+    const d = drag;
+    d.timer = setTimeout(() => {
+      if (drag !== d || d.moved) return;
+      d.held = true;
+      pc.el.classList.remove("dragging");
+      flip(pc);
+    }, 500);
+  }
+});
+
+board.addEventListener("pointermove", e => {
+  if (touches.has(e.pointerId)) touches.set(e.pointerId, [e.clientX, e.clientY]);
+  if (rot && rot.ids.includes(e.pointerId)) {
+    turnTo(rot.ids.length === 2 ? twistAngle(...rot.ids) : mouseAngle(e, rot.c));
+    return;
+  }
+  if (!drag || e.pointerId !== drag.id || drag.held) return;
+  if (!drag.moved && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 4) return;
+  drag.moved = true;
+  clearTimeout(drag.timer);
+  const w = toWorld(e);
+  const s = place(drag.pc, shift(drag.orig, sub(w, drag.start)));
+  showRing(s.at);
+});
+
+function pointerEnd(e) {
+  touches.delete(e.pointerId);
+  if (rot && rot.ids.includes(e.pointerId)) { endTurn(); return; }
+  if (!drag || e.pointerId !== drag.id) return;
+  const { pc, held } = drag;
+  clearTimeout(drag.timer);
+  pc.el.classList.remove("dragging");
+  showRing(null);
+  drag = null;
+  if (held) return;
+  update();
+}
+board.addEventListener("pointerup", pointerEnd);
+board.addEventListener("pointercancel", pointerEnd);
+board.addEventListener("contextmenu", e => e.preventDefault());
+
+board.addEventListener("keydown", e => {
+  const pc = pieceOf(e.target);
+  if (!pc || pc.anim || rot) return;
+  const step = pxToWorld(e.shiftKey ? 2 : 10);
+  const moves = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, step], ArrowDown: [0, -step] };
+  if (moves[e.key]) {
+    e.preventDefault();
+    bringToFront(pc); pc.el.focus();
+    place(pc, shift(pc.pts, moves[e.key]));
+    update();
+  } else if ("[]{}".includes(e.key) && e.key.length === 1) {
+    // [ turns counter-clockwise, ] clockwise: 1° at a time, 15° with Shift
+    e.preventDefault();
+    const deg = (e.shiftKey ? 15 : 1) * ("[{".includes(e.key) ? 1 : -1);
+    bringToFront(pc); pc.el.focus();
+    turnBy(pc, deg * Math.PI / 180);
+  } else if (e.key === "f" || e.key === "F") {
+    e.preventDefault();
+    flip(pc); pc.el.focus();
+  }
+});
+
+/* ------------------------------ PROGRESS ------------------------------ */
+function insideConvex(p, Q, eps) {
+  const sgn = Math.sign(edges(Q).reduce((s, [a, b]) => s + cross(a, b), 0));
+  return edges(Q).every(([a, b]) => sgn * cross(sub(b, a), sub(p, a)) / len(sub(b, a)) >= -eps);
+}
+function insidePoly(p, Q) {
+  let inside = false;
+  for (let i = 0, j = Q.length - 1; i < Q.length; j = i++) {
+    const [xi, yi] = Q[i], [xj, yj] = Q[j];
+    if ((yi > p[1]) !== (yj > p[1]) && p[0] < (xj - xi) * (p[1] - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+function update() {
+  const T = puzzle.squares.c;
+  const side = len(sub(T[1], T[0])), eps = side * 1e-3;
+  const live = activePieces();
+  const placed = live.filter(pc => pc.pts.every(v => insideConvex(v, T, eps))).length;
+  let solved = placed === live.length;
+  if (solved) {
+    // every sample point in the big square must be covered by exactly one piece
+    const u = sub(T[1], T[0]), v = sub(T[3], T[0]), N = 32;
+    outer: for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+      const s = (i + 0.4137) / N, t = (j + 0.2719) / N;   // offsets chosen so samples avoid tidy lines like s + t = ½
+      const p = [T[0][0] + u[0] * s + v[0] * t, T[0][1] + u[1] * s + v[1] * t];
+      let hits = 0;
+      for (const pc of pieces) if (insidePoly(p, pc.pts)) hits++;
+      if (hits !== 1) { solved = false; break outer; }
+    }
+  }
+  if (solved && family) markSolved(family.id);
+  eqEl.classList.toggle("solved", solved);
+  targetEl.classList.toggle("solved", solved);
+  ghostLayer.classList.toggle("show", solved);
+  saveState();
+}
+
+/* ------------------------------ SAVING ------------------------------
+   Each puzzle's arrangement (ratio, and every piece's turn, flip and offset
+   from its starting spot) is kept in this browser, so leaving a puzzle and
+   coming back, or reloading the page, picks up where you left off. */
+const STATE_KEY = id => "pythagorean-dissections:arrangement:" + id;
+function saveState() {
+  if (!family || curRatio === null || puzzle.name !== family.name) return;
+  const state = {
+    ratio: curRatio,
+    pieces: pieces.map(pc => {
+      const P0 = poseOf(pc.home[0], pc);
+      return { th: pc.th, f: pc.f, t: [pc.pts[0][0] - P0[0], pc.pts[0][1] - P0[1]] };
+    })
+  };
+  try { localStorage.setItem(STATE_KEY(family.id), JSON.stringify(state)); } catch (e) {}
+}
+function savedState(f) {
+  try {
+    const st = JSON.parse(localStorage.getItem(STATE_KEY(f.id)) || "null");
+    if (st && st.ratio >= f.min && st.ratio <= f.max && Array.isArray(st.pieces) && st.pieces.length === f.build(st.ratio).pieces.length) return st;
+  } catch (e) {}
+  return null;
+}
+function restoreState(st) {
+  st.pieces.forEach((s, i) => {
+    const pc = pieces[i];
+    pc.th = s.th; pc.f = s.f;
+    pc.pts = pc.home.map(h => add(poseOf(h, pc), s.t));
+  });
+  contactCache = null;
+  load(puzzle, true);
+}
+
+/* ------------------------------ SETUP ------------------------------ */
+const TRIPLES = [
+  [1, 1], [3, 4], [5, 12], [8, 15], [7, 24], [20, 21], [9, 40], [12, 35], [11, 60],
+  [28, 45], [33, 56], [48, 55], [65, 72], [16, 63], [13, 84], [36, 77], [39, 80],
+  [20, 99], [60, 91], [44, 117], [88, 105], [119, 120]
+];
+const ratioIn = document.getElementById("ratio"), ratioOut = document.getElementById("ratioOut");
+let family = null, familyView = null, famA0 = 0, famB0 = 0;
+
+// The figure never reaches three corners of the board: left of square b's
+// side and above its top, below square b and left of square a, and right of
+// square a below the big square. The controls go there.
+// Extra room added above the figure (in board units) when the controls need it.
+// Extra room (in board units) added above the figure for the controls, and
+// below it so the figure doesn't reach lower than the sidebar.
+let topExtra = 0, bottomExtra = 0;
+function applyView() {
+  view = { x: familyView.x, y: familyView.y - bottomExtra, w: familyView.w, h: familyView.h + topExtra + bottomExtra };
+  board.setAttribute("viewBox", `${view.x} ${-(view.y + view.h)} ${view.w} ${view.h}`);
+}
+
+// The controls sit in the corner the figure never uses: left of the big
+// square and above square b, starting level with the top of the sidebar.
+// The figure sits as high as it can below them, and is shrunk if needed so
+// its bottom stays level with or above the bottom of the sidebar.
+function layoutZones() {
+  if (!familyView || typeof DOMPoint === "undefined" || !board.getScreenCTM()) return;
+  topExtra = 0; bottomExtra = 0;
+  applyView();
+  const zone = document.getElementById("zoneTL");
+  const buttons = document.querySelectorAll("#puzzleList .puzzle-btn");
+  for (let tries = 0; tries < 12; tries++) {
+    const ctm = board.getScreenCTM(), box = document.getElementById("boardWrap").getBoundingClientRect();
+    const at = (x, y) => { const q = new DOMPoint(x, -y).matrixTransform(ctm); return [q.x - box.left, q.y - box.top]; };
+    const v = view, g = familyView.w * 0.03;
+    const [l] = at(v.x + g, v.y + v.h - g), [r, b] = at(-g, famB0 + g);
+    const t = buttons.length ? buttons[0].getBoundingClientRect().top - box.top : 0;
+    Object.assign(zone.style, { left: l + "px", top: t + "px", width: Math.max(0, r - l) + "px", height: Math.max(0, b - t) + "px" });
+    const short = zone.scrollHeight - zone.clientHeight;
+    const listBottom = buttons.length ? buttons[buttons.length - 1].getBoundingClientRect().bottom - box.top : box.height;
+    const over = at(0, -famA0)[1] - Math.min(listBottom, box.height);
+    if (short <= 1 && over <= 1) break;
+    if (short > 1) topExtra += (short + 4) / ctm.a;
+    if (over > 1) bottomExtra += (over + 2) / ctm.a;
+    applyView();
+  }
+}
+if (window.ResizeObserver) new ResizeObserver(layoutZones).observe(document.getElementById("stage"));
+else window.addEventListener("resize", layoutZones);
+
+function fmtRatio(r) {
+  const t = TRIPLES.find(([p, q]) => Math.abs(p / q - r) < 1e-9);
+  return t ? `${t[0]} : ${t[1]}` : `${r.toFixed(2)} : 1`;
+}
+let lastRatio = null, curRatio = null;
+function setRatio(r, fresh = false) {
+  curRatio = r;
+  ratioOut.textContent = fmtRatio(r);
+  ratioIn.setAttribute("aria-valuetext", fmtRatio(r));
+  const p = family.build(r);
+  if (fresh || !puzzle || puzzle.name !== p.name || lastRatio === null) load(p);
+  else {
+    // Big jumps are taken in small steps, so contacts that were only an
+    // accident of the old ratio come apart gently and are easy to spot.
+    const n = Math.max(1, Math.ceil(Math.abs(r - lastRatio) / 0.02));
+    let prev = lastRatio;
+    for (let k = 1; k <= n; k++) {
+      const q = k === n ? r : lastRatio + (r - lastRatio) * k / n;
+      // crossing a ratio where the cut changes: stop exactly on it first
+      const crossed = (family.breaks || []).filter(b => (b - prev) * (b - q) < 0 || (b === prev && q !== b))
+        .sort((x, y) => Math.abs(x - prev) - Math.abs(y - prev));
+      for (const b of crossed) {
+        if (b !== prev) morph(family.build(b), false);
+        contactCache = null; atBreak = true;
+      }
+      morph(k === n ? p : family.build(q), k === n);
+      prev = q;
+    }
+  }
+  lastRatio = r;
+}
+function loadFamily(f) {
+  family = f;
+  const samples = [];
+  for (let i = 0; i <= 24; i++) samples.push(f.build(f.min + (f.max - f.min) * i / 24));
+  familyView = viewFor(samples);
+  // square the view, so the board fills the square stage
+  const side = Math.max(familyView.w, familyView.h);
+  familyView = { x: familyView.x - (side - familyView.w) / 2, y: familyView.y - (side - familyView.h) / 2, w: side, h: side };
+  famA0 = 0; famB0 = 0;
+  for (let i = 0; i <= 24; i++) { const g = figure(f.min + (f.max - f.min) * i / 24, 1); famA0 = Math.max(famA0, g.a0); famB0 = Math.max(famB0, g.b0); }
+  const saved = savedState(f);
+  const r0 = saved ? saved.ratio : f.start;
+  ratioIn.min = f.min; ratioIn.max = f.max; ratioIn.value = r0;
+  const dl = document.getElementById("triples");
+  dl.innerHTML = "";
+  for (const [p, q] of TRIPLES) if (p / q >= f.min && p / q <= f.max) {
+    // Browsers only draw a tick when its value lands on the slider's step, so round to it.
+    const o = document.createElement("option"); o.value = (p / q).toFixed(3); dl.appendChild(o);
+  }
+  setRatio(r0, true);
+  if (saved) restoreState(saved);
+  highlightCurrent();
+  layoutZones();
+}
+// The slider sticks to whole-number triangles (3 : 4, 5 : 12, …) when it passes close to one.
+ratioIn.addEventListener("input", () => {
+  let r = +ratioIn.value;
+  const t = TRIPLES.map(([p, q]) => p / q).find(v => v >= family.min && v <= family.max && Math.abs(v - r) < 0.006);
+  if (t !== undefined) r = t;
+  setRatio(r);
+});
+
+// ---- Puzzle sidebar
+const SOLVED_KEY = "pythagorean-dissections:solved-v2";
+let solvedSet = new Set();
+try {
+  const saved = localStorage.getItem(SOLVED_KEY);
+  if (saved) solvedSet = new Set(JSON.parse(saved));
+  else {
+    // carry solved marks over from before the puzzles were renumbered
+    const renumber = { 2: 1, 7: 2, 1: 3, 10: 4, 6: 5, 8: 6, 5: 7, 9: 8, 3: 9, 4: 10 };
+    const old = JSON.parse(localStorage.getItem("pythagorean-dissections:solved") || "[]");
+    solvedSet = new Set(old.map(id => "dissection-" + renumber[+id.split("-")[1]]).filter(id => !id.endsWith("undefined")));
+  }
+} catch (e) {}
+const listEl = document.getElementById("puzzleList");
+const buttons = new Map();
+
+function markSolved(id) {
+  if (solvedSet.has(id)) return;
+  solvedSet.add(id);
+  try { localStorage.setItem(SOLVED_KEY, JSON.stringify([...solvedSet])); } catch (e) {}
+  const btn = buttons.get(id);
+  if (btn) btn.querySelector(".puzzle-solved").textContent = "✓";
+}
+
+function thumbnail(def) {
+  const p = def.build(def.start), v = viewFor([p]);
+  const svg = el("svg", { viewBox: `${v.x} ${-(v.y + v.h)} ${v.w} ${v.h}`, preserveAspectRatio: "xMidYMid meet", "aria-hidden": "true" });
+  el("polygon", { points: toPoints(p.squares.c), class: "thumb-target" }, svg);
+  p.pieces.forEach((pts, i) => el("polygon", { points: toPoints(pts), fill: pieceColor(def.hue, i, p.pieces.length), class: "thumb-piece" }, svg));
+  return svg;
+}
+
+for (const def of PUZZLES) {
+  const li = document.createElement("li");
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "puzzle-btn";
+  btn.setAttribute("aria-label", def.name);
+  btn.appendChild(thumbnail(def));
+  const meta = document.createElement("span");
+  meta.className = "puzzle-meta";
+  meta.innerHTML = `<span class="puzzle-name"></span><span class="puzzle-solved"></span>`;
+  meta.firstChild.textContent = def.name.replace("Dissection ", "");
+  if (solvedSet.has(def.id)) meta.lastChild.textContent = "✓";
+  btn.appendChild(meta);
+  btn.addEventListener("click", () => { if (family !== def) loadFamily(def); });
+  li.appendChild(btn);
+  listEl.appendChild(li);
+  buttons.set(def.id, btn);
+}
+
+function highlightCurrent() {
+  for (const [id, btn] of buttons) btn.setAttribute("aria-current", family && family.id === id ? "true" : "false");
+}
+
+document.getElementById("reset").addEventListener("click", () => load(puzzle));
+
+if (window.matchMedia("(pointer: coarse)").matches) {
+  document.getElementById("hint").textContent = "Drag pieces into the big square. Twist with a second finger to turn. Press and hold to flip.";
+}
+loadFamily(PUZZLES[0]);
+</script>
+</body>
+</html>
