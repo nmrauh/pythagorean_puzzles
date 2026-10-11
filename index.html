@@ -1340,7 +1340,13 @@ function update() {
       if (hits !== 1) { solved = false; break outer; }
     }
   }
-  if (solved && family) markSolved(family.id);
+  // A square that was completed at 1 : 1 doesn't earn the ✓, and neither does
+  // the same arrangement after sliding away from 1 : 1. It has to be put
+  // together at some other ratio.
+  if (solved && !wasSolved) solvedAtOne = curRatio >= 1;
+  if (!solved) solvedAtOne = false;
+  wasSolved = solved;
+  if (solved && !solvedAtOne && family) markSolved(family.id);
   eqEl.classList.toggle("solved", solved);
   targetEl.classList.toggle("solved", solved);
   ghostLayer.classList.toggle("show", solved);
@@ -1351,11 +1357,13 @@ function update() {
    Each puzzle's arrangement (ratio, and every piece's turn, flip and offset
    from its starting spot) is kept in this browser, so leaving a puzzle and
    coming back, or reloading the page, picks up where you left off. */
+let wasSolved = false, solvedAtOne = false;
 const STATE_KEY = id => "pythagorean-dissections:arrangement:" + id;
 function saveState() {
   if (!family || curRatio === null || puzzle.name !== family.name) return;
   const state = {
     ratio: curRatio,
+    solvedAtOne,
     pieces: pieces.map(pc => {
       const P0 = poseOf(pc.home[0], pc);
       return { th: pc.th, f: pc.f, t: [pc.pts[0][0] - P0[0], pc.pts[0][1] - P0[1]] };
@@ -1371,6 +1379,7 @@ function savedState(f) {
   return null;
 }
 function restoreState(st) {
+  wasSolved = !!st.solvedAtOne; solvedAtOne = !!st.solvedAtOne;
   st.pieces.forEach((s, i) => {
     const pc = pieces[i];
     pc.th = s.th; pc.f = s.f;
