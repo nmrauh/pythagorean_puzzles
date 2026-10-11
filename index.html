@@ -274,7 +274,7 @@ const PUZZLES = [
     id: "dissection-1",
     name: "Dissection 1",
     // needs a ≤ b: past that, u₁ and u₄ leave square b
-    min: 0.15, max: 1, start: 0.75,
+    min: 0.15, max: 1, start: 5 / 12,
     pieces({ a0, b0, p0, p1, p2, r0, r1, s0, s2 }) {
       const h = [-b0 / 2, b0 / 2];
       const u1 = add(h, [-b0 / 2, -a0 / 2]);
@@ -293,7 +293,7 @@ const PUZZLES = [
   {
     id: "dissection-2",
     name: "Dissection 2",
-    min: 0.15, max: 1, start: 0.75,     // this cut needs a ≤ b
+    min: 0.15, max: 1, start: 5 / 12,     // this cut needs a ≤ b
     pieces({ a, b, c, a0, b0, p0, p1, p2, r0, r1, s0, s2 }) {
       const d0 = b0 * b / c;
       const u0 = [s2[0], s2[1] - a0];
@@ -312,7 +312,7 @@ const PUZZLES = [
     id: "dissection-3",
     name: "Dissection 3",
     // needs a < b: at a = b, d₁ = 0 and the corner triangle shrinks to nothing
-    min: 0.15, max: 1, start: 0.75,
+    min: 0.15, max: 1, start: 5 / 12,
     // pieces that vanish near 1 : 1 come back here (found from a solved square)
     spawn: { 1: { from: 0, at: [1, 2], turn: -Math.PI } },
     pieces({ a, b, a0, b0, p0, p1, p2, r0, r1, s0, s2 }) {
@@ -339,7 +339,7 @@ const PUZZLES = [
     // its centre; square b loses four corner triangles, each cut parallel to a
     // side of the big square at depth δ = a₀(b₀ − a₀)/2. At 1 : 1 those corners
     // vanish, so the slider stops at 0.9.
-    min: 0.15, max: 1, start: 0.75,
+    min: 0.15, max: 1, start: 5 / 12,
     // pieces that vanish near 1 : 1 come back here (found from a solved square)
     spawn: { 4: { from: 3, at: [0, 2] }, 6: { from: 2, at: [0, 2] }, 7: { from: 0, at: [0, 1] }, 8: { from: 1, at: [0, 2] } },
     pieces({ a0, b0, p0, p1, p2, r0, r1, s0, s2 }) {
@@ -367,7 +367,7 @@ const PUZZLES = [
   {
     id: "dissection-5",
     name: "Dissection 5",
-    min: 0.15, max: 1, start: 0.75,
+    min: 0.15, max: 1, start: 5 / 12,
     pieces({ a, b, a0, b0, p0, p1, p2, r0, r1, s0, s2 }) {
       const b1 = b / (a + b) * b0;
       const b2 = b / (a + b) * a0;
@@ -396,7 +396,7 @@ const PUZZLES = [
   {
     id: "dissection-6",
     name: "Dissection 6",
-    min: 0.15, max: 1, start: 0.75,
+    min: 0.15, max: 1, start: 5 / 12,
     pieces({ a, b, c, a0, b0, p0, p1, p2, r0, r1, s0, s2 }) {
       const d = a0 * b / (a + b + c);      // the triangle's inradius, at this scale
       const u0 = [0, d];
@@ -426,7 +426,7 @@ const PUZZLES = [
   {
     id: "dissection-7",
     name: "Dissection 7",
-    min: 0.15, max: 1, start: 0.75,
+    min: 0.15, max: 1, start: 5 / 12,
     pieces({ a, b, a0, b0, p0, p1, p2, r0, r1, s0, s2 }) {
       const d0 = a0 * b0 / (a0 + b0);
       const u0 = add(s0, [d0, d0]);
@@ -450,7 +450,7 @@ const PUZZLES = [
     id: "dissection-8",
     name: "Dissection 8",
     // needs a < b: two pieces shrink to nothing at 1 : 1, so the slider stops at 0.9
-    min: 0.15, max: 1, start: 0.75,
+    min: 0.15, max: 1, start: 5 / 12,
     // pieces that vanish near 1 : 1 come back here (found from a solved square)
     spawn: { 2: { from: 0, at: [0, 1] }, 3: { from: 0, at: [0, 0], turn: -Math.PI }, 4: { from: 1, at: [0, 0] } },
     pieces({ a, b, a0, b0, p0, p1, p2, r0, r1, s0, s2 }) {
@@ -481,7 +481,7 @@ const PUZZLES = [
     // Each time b/a passes a whole number, one more line crosses square a and
     // adds a row: 7 pieces from 1 : 2 up, 8 from 1 : 3, 9 from 1 : 4.
     // Near 1 : 1 the last row shrinks to nothing, so the slider stops at 0.9.
-    min: 0.15, max: 1, start: 0.75,
+    min: 0.15, max: 1, start: 5 / 12,
     breaks: [1 / 6, 1 / 5, 1 / 4, 1 / 3, 1 / 2],
     // A new row starts with no area at corner r₁. When it appears it is turned
     // like the row before it, with its corner on that row's last corner, which
@@ -524,7 +524,7 @@ const PUZZLES = [
     name: "Dissection 10",
     // needs a < b: the small square (u₂, u₁, u₀, s₀) has side b₀ − a₀,
     // which vanishes at 1 : 1, so the slider stops at 0.9
-    min: 0.15, max: 1, start: 0.75,
+    min: 0.15, max: 1, start: 5 / 12,
     // pieces that vanish near 1 : 1 come back here (found from a solved square)
     spawn: { 2: { from: 0, at: [0, 0], turn: Math.PI / 2 }, 3: { from: 1, at: [2, 2], turn: -Math.PI / 2 }, 4: { from: 0, at: [3, 1] } },
     pieces({ a0, b0, p0, p1, p2, r0, r1, s0, s2 }) {
